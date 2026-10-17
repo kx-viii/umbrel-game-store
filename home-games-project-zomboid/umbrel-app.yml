@@ -1,0 +1,35 @@
+manifestVersion: 1.1
+id: home-games-project-zomboid
+category: gaming
+name: Project Zomboid
+version: "42.21"
+tagline: A modded Project Zomboid world that stays online
+icon: https://raw.githubusercontent.com/kx-viii/umbrel-game-store/main/home-games-project-zomboid/icon.png
+description: >-
+  A Project Zomboid (Build 42) dedicated server running the Project Viewpoint Vanilla+ modpack by OwenOasis.
+  Open this app to see the server's status, the IP and port to join, and the passwords.
+
+
+  The first start downloads about 3 GB of mods from the Steam Workshop and can take 20 minutes or more.
+  Players need the same mods: subscribe to the collection and set up ZombieBuddy, as for single player.
+
+
+  The mod list is in mods.txt (load order) and workshop.txt (Workshop items) in the app folder.
+  The server's game version must match the players', so the app needs an update when Project Zomboid updates.
+
+
+  Players on your home network or Tailscale can join straight away. Players elsewhere need UDP ports 16261 and 16262 forwarded on the router.
+releaseNotes: ""
+developer: The Indie Stone / Danixu
+website: https://projectzomboid.com/
+dependencies: []
+repo: https://github.com/Danixu/project-zomboid-server-docker
+support: https://github.com/Danixu/project-zomboid-server-docker/issues
+port: 8488
+gallery: []
+path: ""
+defaultUsername: ""
+defaultPassword: ""
+torOnly: false
+submitter: home
+submission: ""

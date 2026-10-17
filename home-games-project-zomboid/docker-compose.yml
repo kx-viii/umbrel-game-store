@@ -1,0 +1,49 @@
+version: "3.7"
+
+services:
+  app_proxy:
+    environment:
+      APP_HOST: home-games-project-zomboid_web_1
+      APP_PORT: 8080
+      # Keeps the Umbrel login in front of the page, since it shows the passwords
+
+  server:
+    # The game version must match the players' game, so bump this tag when Project Zomboid updates
+    image: danixu86/project-zomboid-dedicated-server:42.21-release-2@sha256:c165eb74027339bb22bc9a39ae352aa616c1fdd6983c8ec76420b643f1acd456
+    # start.sh sets the passwords, mod lists and ZombieBuddy, then runs the image's entry script
+    entrypoint: ["/bin/bash", "/umbrel/start.sh"]
+    environment:
+      - SERVERNAME=home
+      - DISPLAYNAME=Home
+      - PUBLIC=false
+      - MIN_MEMORY=2048m
+      - MAX_MEMORY=8192m
+    ports:
+      - 16261:16261/udp
+      - 16262:16262/udp
+    volumes:
+      # World, server settings, logs and the passwords file
+      - ${APP_DATA_DIR}/data/zomboid:/home/steam/Zomboid
+      # Downloaded workshop mods
+      - ${APP_DATA_DIR}/data/workshop:/home/steam/pz-dedicated/steamapps/workshop
+      - ${APP_DATA_DIR}/start.sh:/umbrel/start.sh:ro
+      - ${APP_DATA_DIR}/mods.txt:/umbrel/mods.txt:ro
+      - ${APP_DATA_DIR}/workshop.txt:/umbrel/workshop.txt:ro
+    # Gives the server time to save the world on stop
+    stop_grace_period: 3m
+    restart: on-failure
+
+  web:
+    image: busybox:1.37.0
+    command:
+      - sh
+      - -c
+      - |
+        mkdir -p /www/cgi-bin
+        cp /umbrel/status.cgi /www/cgi-bin/index.cgi
+        chmod +x /www/cgi-bin/index.cgi
+        exec httpd -f -p 8080 -h /www
+    volumes:
+      - ${APP_DATA_DIR}/status.cgi:/umbrel/status.cgi:ro
+      - ${APP_DATA_DIR}/data/zomboid:/zomboid:ro
+    restart: on-failure
