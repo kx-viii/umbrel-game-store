@@ -3,7 +3,11 @@
 Standard library only, so it runs on the stock Python image. It reads the server's files from
 the shared Zomboid folder and talks to the server over RCON on the app's private network.
 The Umbrel login sits in front of it (app_proxy), so it has no login of its own.
+
+A second, read-only listener on port 8081 serves just the live map for sharing outside the
+Umbrel (through Tailscale Funnel), behind a secret link and with no passwords or controls.
 """
+import hmac
 import json
 import os
 import re
@@ -35,6 +39,7 @@ INI = f"{ZOMBOID}/Server/{SERVERNAME}.ini"
 SANDBOX = f"{ZOMBOID}/Server/{SERVERNAME}_SandboxVars.lua"
 SAVE_DIR = f"{ZOMBOID}/Saves/Multiplayer/{SERVERNAME}"
 CACHE = f"{ZOMBOID}/.umbrel-dashboard"
+PUBLIC_MAP = f"{CACHE}/public-map.json"
 
 # The map picture comes from pzmap.org. The vanilla Build 42 map hasn't changed since 42.20.
 TILE_URL = "https://tiles.pzmap.org/42.20.0/base/layer0_files/{level}/{tile}.jpg"
@@ -622,7 +627,68 @@ def state():
         "restartAt": int(restart_at * 1000) if restart_at else None,
         "needsRestart": phase == "online" and settings_changed_since_start(started_ms),
         "lastLog": last_line[:300],
+        "publicMap": public_map(),
     }
+
+
+def public_state():
+    """What the public map shows. Built field by field so nothing private slips in."""
+    phase, data, _ = phase_and_status()
+    players = []
+    if data:
+        for p in data.get("players", []):
+            row = {k: p.get(k) for k in ("name", "x", "y", "z", "health", "alive", "kills", "hoursSurvived", "admin")}
+            row["near"] = near_town(p.get("x") or 0, p.get("y") or 0)
+            players.append(row)
+    elif phase == "online":
+        players = rcon_players()
+    return {
+        "phase": phase,
+        "name": SERVERNAME,
+        "version": GAME_VERSION,
+        "startedAt": data.get("startedAt") if data else None,
+        "now": int(time.time() * 1000),
+        "players": players,
+        "gameTime": data.get("gameTime") if data else None,
+        "weather": data.get("weather") if data else None,
+        "liveMap": bool(data),
+        "publicAddress": join_address(),
+        "maxPlayers": ini_value("MaxPlayers"),
+        "pvp": ini_value("PVP"),
+        "mods": len(list_file(f"{LISTS}/mods.txt")),
+        "collection": COLLECTION,
+    }
+
+
+def ini_value(key):
+    for line in (read_text(INI) or "").splitlines():
+        if line.startswith(key + "="):
+            return line.split("=", 1)[1].strip()
+    return None
+
+
+public_map_lock = threading.Lock()
+
+
+def public_map():
+    """The public map's secret link code, and the address the Funnel serves it at.
+    The code is made on first use; a new one stops old links working."""
+    with public_map_lock:
+        try:
+            with open(PUBLIC_MAP, encoding="utf-8") as f:
+                data = json.load(f)
+            if re.fullmatch(r"[0-9a-f]{16}", str(data.get("code", ""))):
+                return {"code": data["code"], "base": str(data.get("base", ""))}
+        except (OSError, ValueError):
+            pass
+        return save_public_map(code=os.urandom(8).hex(), base="")
+
+
+def save_public_map(code, base):
+    os.makedirs(CACHE, exist_ok=True)
+    data = {"code": code, "base": base}
+    write_atomic(PUBLIC_MAP, json.dumps(data))
+    return data
 
 
 def join_address():
@@ -780,6 +846,18 @@ class Handler(BaseHTTPRequestHandler):
                 host, port = (m.group(1), m.group(2) or GAME_PORT) if m else ("", "")
                 write_atomic(f"{CACHE}/join.json", json.dumps({"host": host, "port": port}))
                 return self.send(200, {"ok": True})
+            if p == "/api/public-map":
+                current = public_map()
+                if body.get("newLink"):
+                    with public_map_lock:
+                        save_public_map(code=os.urandom(8).hex(), base=current["base"])
+                    return self.send(200, {"ok": True})
+                base = str(body.get("base", "")).strip().rstrip("/")
+                if base and not re.fullmatch(r"https?://[A-Za-z0-9.-]{1,253}(:\d{1,5})?", base):
+                    return self.error(400, "Use an address like https://umbrel.example.ts.net:10000")
+                with public_map_lock:
+                    save_public_map(code=current["code"], base=base)
+                return self.send(200, {"ok": True})
             if p == "/api/broadcast":
                 say(str(body.get("text", "")))
                 return self.send(200, {"ok": True})
@@ -854,6 +932,52 @@ class Handler(BaseHTTPRequestHandler):
                             pass  # a file the server just replaced
 
 
+class PublicHandler(Handler):
+    """The shareable map: only the map page, its tiles and public_state(), under /m/<code>/.
+    Everything else, including the right page with the wrong code, is a plain 404."""
+    server_version = "ZomboidMap"
+
+    def send(self, code, body=b"", ctype="application/json", headers=None):
+        # Keeps the secret link out of other sites' logs, and the page out of search engines
+        headers = {"Referrer-Policy": "no-referrer", "X-Robots-Tag": "noindex", **(headers or {})}
+        super().send(code, body, ctype, headers)
+
+    def do_GET(self):
+        p = urlparse(self.path).path
+        m = re.fullmatch(r"/m/([0-9a-f]{16})(/.*)?", p)
+        if not m or not hmac.compare_digest(m.group(1), public_map()["code"]):
+            return self.error(404, "Not found")
+        rest = m.group(2)
+        try:
+            if rest is None:
+                return self.send(301, b"", "text/plain", {"Location": f"/m/{m.group(1)}/"})
+            if rest in ("/", "/index.html"):
+                return self.static("map.html", "text/html; charset=utf-8")
+            if rest == "/openseadragon.min.js":
+                return self.static("openseadragon.min.js", "text/javascript", cache=True)
+            if rest == "/api/state":
+                return self.send(200, public_state())
+            t = re.fullmatch(r"/tiles/(\d{1,2})/(\d{1,6}_\d{1,6})\.jpg", rest)
+            if t:
+                data = tile(t.group(1), t.group(2))
+                if not data:
+                    return self.send(404, b"", "image/jpeg", {"Cache-Control": "max-age=86400"})
+                return self.send(200, data, "image/jpeg", {"Cache-Control": "max-age=604800"})
+            return self.error(404, "Not found")
+        except (BrokenPipeError, ConnectionResetError):
+            pass
+        except Exception:  # no error details to the public
+            try:
+                self.error(500, "Something went wrong")
+            except OSError:
+                pass
+
+    def do_POST(self):
+        self.error(404, "Not found")
+
+
 if __name__ == "__main__":
     ThreadingHTTPServer.daemon_threads = True
+    public = ThreadingHTTPServer(("0.0.0.0", 8081), PublicHandler)
+    threading.Thread(target=public.serve_forever, daemon=True).start()
     ThreadingHTTPServer(("0.0.0.0", 8080), Handler).serve_forever()

@@ -44,6 +44,10 @@ services:
     command: ["python", "-u", "/umbrel/dashboard/server.py"]
     # The game server's user, so settings it edits keep the right owner
     user: "1000:1000"
+    # The read-only public map, on the Umbrel itself only. To share it outside, run in the
+    # Tailscale app's terminal: tailscale funnel --bg --https=10000 http://127.0.0.1:8489
+    ports:
+      - "127.0.0.1:8489:8081"
     environment:
       - SERVERNAME=home
       - GAME_PORT=16261

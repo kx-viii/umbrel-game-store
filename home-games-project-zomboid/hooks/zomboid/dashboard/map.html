@@ -1,0 +1,256 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="robots" content="noindex">
+<meta name="referrer" content="no-referrer">
+<title>Zomboid Live Map</title>
+<style>
+:root{
+  --bg:#110f0d;--panel:#1a1714;--panel2:#221e1a;--line:#2e2924;--text:#ece6df;--muted:#9a8f84;--faint:#6d645b;
+  --accent:#e0a96d;--accent-ink:#1a1209;--ok:#7bd88f;--warn:#e8c26a;--bad:#e27062;
+  --mono:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;
+}
+*{box-sizing:border-box}
+[hidden]{display:none!important}
+html,body{height:100%;overflow:hidden;margin:0;background:var(--bg);color:var(--text);font:15px/1.5 system-ui,-apple-system,"Segoe UI",Roboto,sans-serif}
+a{color:var(--accent)}
+button{font:inherit;color:inherit}
+header{height:56px;display:flex;align-items:center;gap:12px;padding:0 16px;border-bottom:1px solid var(--line);background:var(--panel)}
+.brand{font-weight:700;font-size:1.05rem;white-space:nowrap}
+.brand small{font-weight:500;color:var(--muted);font-size:.82rem}
+.pill{display:inline-flex;align-items:center;gap:7px;padding:3px 11px;border-radius:99px;background:var(--panel2);border:1px solid var(--line);font-size:.82rem;font-weight:600;white-space:nowrap}
+.dot{width:8px;height:8px;border-radius:50%;background:var(--faint);flex:none}
+.online .dot{background:var(--ok);box-shadow:0 0 0 4px rgba(123,216,143,.15)}
+.starting .dot{background:var(--warn);animation:pulse 1.4s infinite}
+.offline .dot{background:var(--bad)}
+@keyframes pulse{50%{opacity:.35}}
+.spacer{flex:1}
+.meta{color:var(--muted);font-size:.85rem;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+#wrap{position:relative;height:calc(100% - 56px);background:#0b0a09}
+#map{position:absolute;inset:0;width:100%;height:100%}
+.side{position:absolute;top:12px;left:12px;z-index:5;width:300px;max-height:calc(100% - 24px);overflow:auto;background:rgba(26,23,20,.94);border:1px solid var(--line);border-radius:14px;padding:14px}
+h2{margin:0 0 8px;font-size:.74rem;text-transform:uppercase;letter-spacing:.1em;color:var(--muted);font-weight:700}
+.stats{display:grid;grid-template-columns:1fr 1fr;gap:10px 12px;margin-bottom:14px}
+.stat .k{color:var(--muted);font-size:.74rem}
+.stat .v{font-weight:650;font-size:.95rem}
+.join{display:flex;align-items:center;gap:8px;padding:8px 10px;border-radius:10px;background:var(--panel2);border:1px solid var(--line);margin-bottom:14px}
+.join .code{font-family:var(--mono);font-weight:600;font-size:.86rem;word-break:break-all;flex:1}
+.btn{display:inline-flex;align-items:center;justify-content:center;padding:4px 10px;border-radius:8px;border:1px solid var(--line);background:var(--panel);cursor:pointer;font-weight:600;font-size:.82rem;white-space:nowrap}
+.btn:hover{border-color:#4a423a}
+.p{display:grid;grid-template-columns:auto 1fr;gap:10px;align-items:center;padding:8px;border-radius:10px;cursor:pointer}
+.p:hover,.p.sel{background:var(--panel2)}
+.avatar{width:30px;height:30px;border-radius:9px;display:grid;place-items:center;font-weight:800;color:var(--accent-ink)}
+.p .sub{color:var(--muted);font-size:.78rem}
+.hp{height:4px;border-radius:9px;background:var(--line);overflow:hidden;margin-top:4px}
+.hp i{display:block;height:100%;border-radius:9px}
+.badge{font-size:.66rem;font-weight:700;padding:0 6px;border-radius:99px;border:1px solid rgba(224,169,109,.4);color:var(--accent);text-transform:uppercase;letter-spacing:.05em;margin-left:5px}
+.empty{color:var(--muted);font-size:.88rem;padding:4px 2px}
+.foot{margin-top:12px;color:var(--faint);font-size:.76rem}
+label.follow{display:flex;align-items:center;gap:6px;color:var(--muted);font-size:.82rem;margin-top:8px}
+.ctl{position:absolute;right:12px;top:12px;z-index:5;display:flex;flex-direction:column;gap:6px}
+.ctl .btn{width:38px;height:38px;padding:0;font-size:1.1rem;background:rgba(26,23,20,.94)}
+.coords{position:absolute;right:12px;bottom:12px;z-index:5;font-family:var(--mono);font-size:.76rem;background:rgba(26,23,20,.9);border:1px solid var(--line);border-radius:8px;padding:4px 9px;color:var(--muted)}
+.marker{position:relative;width:0;height:0;pointer-events:none}
+.marker .pin{position:absolute;left:-9px;top:-9px;width:18px;height:18px;border-radius:50%;border:3px solid #fff;box-shadow:0 0 0 3px rgba(0,0,0,.35),0 2px 10px rgba(0,0,0,.6)}
+.marker .label{position:absolute;left:14px;top:-12px;background:rgba(17,15,13,.9);border:1px solid var(--line);border-radius:7px;padding:1px 7px;font-size:.78rem;font-weight:700;white-space:nowrap}
+.marker.dead .pin{background:#555!important}
+#toggle{display:none}
+@media(max-width:700px){
+  header .meta{display:none}
+  .side{top:auto;bottom:0;left:0;right:0;width:auto;max-height:45%;border-radius:14px 14px 0 0;border-bottom:0}
+  .side.closed{max-height:52px;overflow:hidden}
+  #toggle{display:inline-flex;position:absolute;right:12px;top:10px}
+  .coords{display:none}
+}
+.toast{position:fixed;left:50%;bottom:24px;transform:translateX(-50%);z-index:50;background:var(--panel2);border:1px solid var(--line);padding:8px 14px;border-radius:10px;font-weight:600}
+</style>
+</head>
+<body>
+<header>
+  <div class="brand">Project Zomboid <small id="sub"></small></div>
+  <span id="phase" class="pill starting"><span class="dot"></span><span id="phaseText">Loading</span></span>
+  <span class="spacer"></span>
+  <span class="meta" id="meta"></span>
+</header>
+<div id="wrap">
+  <div id="map"></div>
+  <div class="side" id="side">
+    <button class="btn" id="toggle">Hide</button>
+    <h2 id="playersTitle">Players</h2>
+    <div id="players"></div>
+    <label class="follow"><input type="checkbox" id="follow"> Follow selected player</label>
+    <h2 style="margin-top:16px">World</h2>
+    <div class="stats" id="stats"></div>
+    <div id="joinBox" hidden>
+      <h2>Join</h2>
+      <div class="join"><span class="code" id="joinAddr"></span><button class="btn" id="copyJoin">Copy</button></div>
+    </div>
+    <div class="foot" id="foot"></div>
+  </div>
+  <div class="ctl">
+    <button class="btn" id="zin" title="Zoom in">+</button>
+    <button class="btn" id="zout" title="Zoom out">−</button>
+    <button class="btn" id="zhome" title="Show everyone">⌂</button>
+  </div>
+  <div class="coords" id="coords">x —, y —</div>
+</div>
+
+<script src="openseadragon.min.js"></script>
+<script>
+"use strict";
+const $ = (id) => document.getElementById(id);
+const esc = (s) => String(s ?? "").replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
+let S = null, selected = null;
+const pad = (n) => String(Math.round(n)).padStart(2, "0");
+const MONTHS = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
+const COLORS = ["#e0a96d", "#7bd88f", "#79b8e8", "#e88fb5", "#c3a6f0", "#e8c26a", "#6fd6c9", "#f09a73"];
+function colorFor(name) { let h = 0; for (const c of name) h = (h * 31 + c.charCodeAt(0)) >>> 0; return COLORS[h % COLORS.length]; }
+function dur(ms) {
+  const m = Math.floor(ms / 60000), d = Math.floor(m / 1440), h = Math.floor((m % 1440) / 60);
+  if (d) return `${d}d ${h}h`;
+  if (h) return `${h}h ${m % 60}m`;
+  return `${m}m`;
+}
+function toast(msg) {
+  const t = document.createElement("div");
+  t.className = "toast"; t.textContent = msg;
+  document.body.appendChild(t); setTimeout(() => t.remove(), 2500);
+}
+
+/* ---------- state ---------- */
+async function refresh() {
+  try { const r = await fetch("api/state", { cache: "no-store" }); if (!r.ok) return; S = await r.json(); } catch (e) { return; }
+  const online = S.phase === "online";
+  $("phase").className = "pill " + S.phase;
+  $("phaseText").textContent = { online: "Online", starting: "Starting", offline: "Offline" }[S.phase];
+  $("sub").textContent = S.version ? `· ${S.version}` : "";
+  const up = S.startedAt && online ? dur(S.now - S.startedAt) : null;
+  const max = S.maxPlayers ? `/${S.maxPlayers}` : "";
+  $("meta").textContent = online ? `${S.players.length}${max} online${up ? " · up " + up : ""}` : "";
+  $("playersTitle").textContent = online ? `Players · ${S.players.length}${max}` : "Players";
+
+  $("players").innerHTML = S.players.length
+    ? S.players.map(playerRow).join("")
+    : `<div class="empty">${online ? (S.liveMap ? "Nobody's on right now." : "Waiting for the server's map script…") : "The server isn't online right now."}</div>`;
+
+  const stats = [], gt = S.gameTime, w = S.weather;
+  if (gt) {
+    stats.push(["Date", `${MONTHS[(gt.month - 1) % 12]} ${Math.round(gt.day)}, ${Math.round(gt.year)}`]);
+    stats.push(["Time", `${pad(gt.hour)}:${pad(gt.minute)}`]);
+    stats.push(["World age", `${Math.floor(gt.daysSurvived)} days`]);
+  }
+  if (w) {
+    const sky = w.snowing ? "Snowing" : w.raining ? "Raining" : w.fog > 0.4 ? "Foggy" : w.clouds > 0.6 ? "Cloudy" : "Clear";
+    stats.push(["Weather", `${sky} · ${Math.round(w.temperature)}°C`]);
+    stats.push(["Wind", `${Math.round(w.wind)} km/h`]);
+  }
+  if (S.pvp) stats.push(["PvP", S.pvp === "true" ? "On" : "Off"]);
+  if (up) stats.push(["Server up", up]);
+  stats.push(["Mods", `${S.mods}`]);
+  $("stats").innerHTML = stats.map(([k, v]) => `<div class="stat"><div class="k">${esc(k)}</div><div class="v">${esc(v)}</div></div>`).join("");
+
+  const pub = S.publicAddress || {};
+  $("joinBox").hidden = !pub.host;
+  $("joinAddr").textContent = pub.host ? `${pub.host}:${pub.port}` : "";
+  $("foot").innerHTML = `Updates every 5 seconds · map from <a href="https://pzmap.org" target="_blank" rel="noopener noreferrer">pzmap.org</a>`
+    + (S.collection ? ` · <a href="https://steamcommunity.com/sharedfiles/filedetails/?id=${esc(S.collection)}" target="_blank" rel="noopener noreferrer">mods on Steam</a>` : "");
+
+  updateMap();
+}
+function playerRow(p) {
+  const hp = p.health == null ? null : Math.max(0, Math.min(100, p.health));
+  const hpColor = hp == null ? "var(--faint)" : hp > 60 ? "var(--ok)" : hp > 25 ? "var(--warn)" : "var(--bad)";
+  const bits = [];
+  if (p.alive === false) bits.push("Dead");
+  if (p.near) bits.push("near " + p.near);
+  if (p.z >= 1) bits.push(`floor ${Math.round(p.z)}`);
+  if (p.kills != null) bits.push(`${Math.round(p.kills)} kills`);
+  if (p.hoursSurvived != null) bits.push(`${dur(p.hoursSurvived * 3600000)} alive`);
+  return `<div class="p${p.name === selected ? " sel" : ""}" data-name="${esc(p.name)}">
+    <div class="avatar" style="background:${colorFor(p.name)}">${esc(p.name.slice(0, 1).toUpperCase())}</div>
+    <div style="min-width:0"><b>${esc(p.name)}</b>${p.admin ? '<span class="badge">admin</span>' : ""}
+      <div class="sub">${esc(bits.join(" · "))}</div>
+      ${hp == null ? "" : `<div class="hp"><i style="width:${hp}%;background:${hpColor}"></i></div>`}</div>
+  </div>`;
+}
+$("players").addEventListener("click", (e) => { const r = e.target.closest("[data-name]"); if (r) locate(r.dataset.name); });
+$("copyJoin").addEventListener("click", () => {
+  const text = $("joinAddr").textContent;
+  if (navigator.clipboard && window.isSecureContext) navigator.clipboard.writeText(text).then(() => toast("Copied"));
+});
+$("toggle").addEventListener("click", () => {
+  const closed = $("side").classList.toggle("closed");
+  $("toggle").textContent = closed ? "Show" : "Hide";
+});
+
+/* ---------- map ---------- */
+const G = { w: 2318656, h: 1019040, x0: 1040384, y0: -139296, half: 64, quarter: 32 };
+const markers = {};
+function worldToImage(x, y) { return new OpenSeadragon.Point(G.x0 + (x - y) * G.half, G.y0 + (x + y) * G.quarter); }
+function imageToWorld(px, py) { const a = (px - G.x0) / G.half, b = (py - G.y0) / G.quarter; return { x: (a + b) / 2, y: (b - a) / 2 }; }
+function vp(x, y) { return viewer.viewport.imageToViewportCoordinates(worldToImage(x, y)); }
+const viewer = OpenSeadragon({
+  element: $("map"), showNavigationControl: false, prefixUrl: "", animationTime: 0.6, visibilityRatio: 0.3,
+  minZoomImageRatio: 0.5, maxZoomPixelRatio: 2, gestureSettingsMouse: { clickToZoom: false }, immediateRender: false,
+  tileSources: { width: G.w, height: G.h, tileSize: 2048, tileOverlap: 0, minLevel: 10, maxLevel: 22,
+    getTileUrl: (level, x, y) => `tiles/${level}/${x}_${y}.jpg` },
+});
+viewer.addOnceHandler("open", () => { home(true); updateMap(); });
+$("zin").onclick = () => viewer.viewport.zoomBy(1.6);
+$("zout").onclick = () => viewer.viewport.zoomBy(1 / 1.6);
+$("zhome").onclick = () => { selected = null; $("follow").checked = false; home(); refreshList(); };
+new OpenSeadragon.MouseTracker({ element: viewer.container, moveHandler: (e) => {
+  const img = viewer.viewport.viewportToImageCoordinates(viewer.viewport.pointFromPixel(e.position));
+  const w = imageToWorld(img.x, img.y);
+  $("coords").textContent = `x ${Math.round(w.x)}, y ${Math.round(w.y)}`;
+} });
+function fitWorld(x1, y1, x2, y2, immediate) {
+  const pts = [vp(x1, y1), vp(x2, y1), vp(x1, y2), vp(x2, y2)];
+  const xs = pts.map((p) => p.x), ys = pts.map((p) => p.y);
+  viewer.viewport.fitBounds(new OpenSeadragon.Rect(Math.min(...xs), Math.min(...ys), Math.max(...xs) - Math.min(...xs), Math.max(...ys) - Math.min(...ys)), immediate);
+}
+function home(immediate) {
+  const ps = (S?.players || []).filter((p) => p.x != null);
+  if (ps.length) {
+    const xs = ps.map((p) => p.x), ys = ps.map((p) => p.y), m = 350;
+    fitWorld(Math.min(...xs) - m, Math.min(...ys) - m, Math.max(...xs) + m, Math.max(...ys) + m, immediate);
+  } else {
+    fitWorld(9000, 8500, 12500, 11000, immediate); // Muldraugh and around
+  }
+}
+function updateMap() {
+  if (!viewer.world.getItemCount()) return;
+  const ps = (S?.players || []).filter((p) => p.x != null);
+  const seen = new Set();
+  for (const p of ps) {
+    seen.add(p.name);
+    let m = markers[p.name];
+    if (!m) {
+      const el = document.createElement("div");
+      el.className = "marker";
+      el.innerHTML = `<div class="pin" style="background:${colorFor(p.name)}"></div><div class="label">${esc(p.name)}</div>`;
+      viewer.addOverlay({ element: el, location: vp(p.x, p.y), placement: OpenSeadragon.Placement.CENTER, checkResize: false });
+      m = markers[p.name] = el;
+    } else {
+      viewer.updateOverlay(m, vp(p.x, p.y), OpenSeadragon.Placement.CENTER);
+    }
+    m.classList.toggle("dead", p.alive === false);
+  }
+  for (const name of Object.keys(markers)) if (!seen.has(name)) { viewer.removeOverlay(markers[name]); delete markers[name]; }
+  if (selected && $("follow").checked) { const p = ps.find((q) => q.name === selected); if (p) viewer.viewport.panTo(vp(p.x, p.y)); }
+}
+function refreshList() { if (S) $("players").innerHTML = S.players.length ? S.players.map(playerRow).join("") : $("players").innerHTML; }
+function locate(name) {
+  selected = name;
+  refreshList();
+  const go = () => { const p = (S?.players || []).find((q) => q.name === name); if (p && p.x != null) fitWorld(p.x - 120, p.y - 120, p.x + 120, p.y + 120); };
+  viewer.world.getItemCount() ? go() : viewer.addOnceHandler("open", go);
+}
+
+refresh();
+setInterval(refresh, 5000);
+</script>
+</body>
+</html>

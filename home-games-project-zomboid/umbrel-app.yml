@@ -2,7 +2,7 @@ manifestVersion: 1.1
 id: home-games-project-zomboid
 category: gaming
 name: Project Zomboid
-version: "42.21-3"
+version: "42.21-4"
 tagline: A modded Project Zomboid world that stays online
 icon: https://raw.githubusercontent.com/kx-viii/umbrel-game-store/main/home-games-project-zomboid/icon.png
 description: >-
@@ -23,7 +23,13 @@ description: >-
   Players on your home network or Tailscale can join straight away. For players elsewhere the app runs a playit.gg tunnel:
   add its secret key as the custom environment variable SECRET_KEY on the playit service in the app's settings,
   then put the tunnel's address in the dashboard's Join box.
-releaseNotes: ""
+
+
+  The live map can be shared as a read-only page behind a secret link. It's served on port 8489 on the Umbrel only;
+  to share it, run in the Tailscale app's terminal: tailscale funnel --bg --https=10000 http://127.0.0.1:8489
+  then put that address in the dashboard's Public map box.
+releaseNotes: >-
+  A shareable, read-only live map with players, health, in-game time and weather, behind a secret link.
 developer: The Indie Stone / Danixu
 website: https://projectzomboid.com/
 dependencies: []

@@ -190,6 +190,11 @@ table.list th{color:var(--muted);font-size:.78rem;text-transform:uppercase;lette
           <span class="k">Password</span><span class="code" id="adminPass" data-secret>••••••••</span><span class="row"><button class="btn small" data-reveal="adminPass">Show</button><button class="btn small" data-copy="adminPass">Copy</button></span>
         </div>
       </details>
+      <div style="margin-top:14px;padding-top:12px;border-top:1px solid var(--line)">
+        <div class="row" style="justify-content:space-between"><b>Public map</b><span class="row"><button class="btn small" id="setMapBase">Address</button><button class="btn small" id="newMapLink">New link</button></span></div>
+        <div class="row" style="margin-top:6px;flex-wrap:nowrap"><span class="code" id="mapLink" style="flex:1;font-size:.84rem"></span><button class="btn small" data-copy="mapLink" id="copyMapLink">Copy</button></div>
+        <p class="muted" style="font-size:.84rem;margin:8px 0 0">A read-only map anyone with the link can open: players, health, time, weather and the join address, never the password. <b>New link</b> stops the old one working.</p>
+      </div>
     </div>
     <div class="card span7">
       <div class="row" style="justify-content:space-between;margin-bottom:12px"><h2 style="margin:0">Players online</h2><span class="muted" id="playerCount"></span></div>
@@ -400,6 +405,10 @@ async function refresh() {
   $("pubIp").textContent = pub.host || "Not set yet";
   $("pubIp").classList.toggle("faint", !pub.host);
   $("pubPort").textContent = pub.host ? pub.port : "—";
+  const pm = S.publicMap || {};
+  $("mapLink").textContent = pm.base ? `${pm.base}/m/${pm.code}/` : "Set its address first";
+  $("mapLink").classList.toggle("faint", !pm.base);
+  $("copyMapLink").hidden = !pm.base;
   secretValues.joinPass = S.joinPassword; secretValues.adminPass = S.adminPassword;
   for (const id of ["joinPass", "adminPass"]) if ($(id).dataset.shown === "1") $(id).textContent = secretValues[id];
 
@@ -481,6 +490,17 @@ $("setPublic").addEventListener("click", async () => {
   const address = prompt("The address friends use from outside your home, from your playit.gg tunnel (host:port). Leave empty to clear.", cur);
   if (address === null) return;
   try { await api("api/join", { address }); toast(address ? "Address saved" : "Address cleared"); refresh(); }
+  catch (err) { toast(err.message, true); }
+});
+$("setMapBase").addEventListener("click", async () => {
+  const base = prompt("The map's public address from the Tailscale Funnel command, like https://umbrel.your-tailnet.ts.net:10000. Leave empty to clear.", S?.publicMap?.base || "");
+  if (base === null) return;
+  try { await api("api/public-map", { base }); toast(base ? "Address saved" : "Address cleared"); refresh(); }
+  catch (err) { toast(err.message, true); }
+});
+$("newMapLink").addEventListener("click", async () => {
+  if (!confirm("Make a new public map link? The old link stops working.")) return;
+  try { await api("api/public-map", { newLink: true }); toast("New link made"); refresh(); }
   catch (err) { toast(err.message, true); }
 });
 $("cancelRestart").addEventListener("click", async () => { await api("api/restart", { cancel: true }).catch(() => {}); refresh(); });
