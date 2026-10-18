@@ -2,7 +2,7 @@ manifestVersion: 1.1
 id: home-games-project-zomboid
 category: gaming
 name: Project Zomboid
-version: "42.21-1"
+version: "42.21-2"
 tagline: A modded Project Zomboid world that stays online
 icon: https://raw.githubusercontent.com/kx-viii/umbrel-game-store/main/home-games-project-zomboid/icon.png
 description: >-
@@ -16,7 +16,7 @@ description: >-
   Players need the same mods: subscribe to the collection and set up ZombieBuddy, as for single player.
 
 
-  The mod list is in mods.txt (load order) and workshop.txt (Workshop items) in the app folder.
+  The mod list is in hooks/zomboid/mods.txt (load order) and hooks/zomboid/workshop.txt (Workshop items) in the app.
   The server's game version must match the players', so the app needs an update when Project Zomboid updates.
 
 
