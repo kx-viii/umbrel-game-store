@@ -2,12 +2,14 @@ manifestVersion: 1.1
 id: home-games-project-zomboid
 category: gaming
 name: Project Zomboid
-version: "42.21"
+version: "42.21-1"
 tagline: A modded Project Zomboid world that stays online
 icon: https://raw.githubusercontent.com/kx-viii/umbrel-game-store/main/home-games-project-zomboid/icon.png
 description: >-
   A Project Zomboid (Build 42) dedicated server running the Project Viewpoint Vanilla+ modpack by OwenOasis.
-  Open this app to see the server's status, the IP and port to join, and the passwords.
+  Open this app for a dashboard: status and uptime, a live map of where everyone is, the mod list,
+  a settings editor for the server and sandbox options, the server console, restarts with in-game
+  warnings, and world backups to download.
 
 
   The first start downloads about 3 GB of mods from the Steam Workshop and can take 20 minutes or more.

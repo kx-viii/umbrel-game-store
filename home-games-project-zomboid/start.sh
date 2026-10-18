@@ -13,8 +13,13 @@ if [ ! -f "${SECRETS}" ]; then
   } > "${SECRETS}"
   chmod 600 "${SECRETS}"
 fi
+# The dashboard's RCON password, added on its own so older installs get one too
+if ! grep -q '^RCON_PASSWORD=' "${SECRETS}"; then
+  echo "RCON_PASSWORD=$(tr -dc 'A-Za-z0-9' </dev/urandom | head -c 24)" >> "${SECRETS}"
+fi
 . "${SECRETS}"
 export PASSWORD="${JOIN_PASSWORD}"
+export RCONPASSWORD="${RCON_PASSWORD}"
 # Only needed to create the admin account, since the server logs its arguments
 if [ ! -f "${DATA}/db/${SERVERNAME}.db" ]; then
   export ADMINPASSWORD="${ADMIN_PASSWORD}"
@@ -34,6 +39,12 @@ set_line() {
 set_line Mods "$(read_list /umbrel/mods.txt | awk '{print "\\" $0}' | paste -sd ';')"
 set_line WorkshopItems "$(read_list /umbrel/workshop.txt | paste -sd ';')"
 export SELF_MANAGED_MODS=true
+
+# The dashboard's live map script runs from the server's own Lua folder. Players don't have
+# that file, so the Lua checksum check has to be off or nobody could join.
+cp -f /umbrel/umbrel-live.lua "${STEAMAPPDIR}/media/lua/server/UmbrelLive.lua"
+set_line DoLuaChecksum false
+set_line RCONPort 27015
 
 # ZombieBuddy is a Java agent that several of the mods need on the server too.
 # Fetch it before the server starts so the agent is there on the very first boot.

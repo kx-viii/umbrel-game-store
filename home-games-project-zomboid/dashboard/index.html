@@ -1,0 +1,688 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Project Zomboid</title>
+<style>
+:root{
+  --bg:#110f0d;--panel:#1a1714;--panel2:#221e1a;--line:#2e2924;--text:#ece6df;--muted:#9a8f84;--faint:#6d645b;
+  --accent:#e0a96d;--accent-ink:#1a1209;--ok:#7bd88f;--warn:#e8c26a;--bad:#e27062;--blue:#79b8e8;
+  --r:14px;--mono:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;
+}
+*{box-sizing:border-box}
+[hidden]{display:none!important}
+html,body{overflow-x:hidden;margin:0;background:var(--bg);color:var(--text);font:15px/1.5 system-ui,-apple-system,"Segoe UI",Roboto,sans-serif}
+a{color:var(--accent)}
+button,input,select,textarea{font:inherit;color:inherit}
+header{position:sticky;top:0;z-index:20;background:rgba(17,15,13,.92);backdrop-filter:blur(8px);border-bottom:1px solid var(--line)}
+.bar{max-width:1200px;margin:0 auto;padding:14px 16px 0;display:flex;align-items:center;gap:14px;flex-wrap:wrap}
+.brand{display:flex;align-items:center;gap:10px;font-weight:700;font-size:1.1rem;letter-spacing:.02em}
+.brand small{font-weight:500;color:var(--muted);font-size:.85rem}
+.pill{display:inline-flex;align-items:center;gap:7px;padding:3px 11px;border-radius:99px;background:var(--panel2);border:1px solid var(--line);font-size:.82rem;font-weight:600}
+.dot{width:8px;height:8px;border-radius:50%;background:var(--faint)}
+.online .dot{background:var(--ok);box-shadow:0 0 0 4px rgba(123,216,143,.15)}
+.starting .dot{background:var(--warn);animation:pulse 1.4s infinite}
+.offline .dot{background:var(--bad)}
+@keyframes pulse{50%{opacity:.35}}
+.spacer{flex:1}
+.meta{color:var(--muted);font-size:.85rem}
+nav{max-width:1200px;margin:0 auto;padding:0 10px;display:flex;gap:2px;overflow-x:auto;scrollbar-width:none}
+nav button{background:none;border:0;padding:12px 12px 11px;color:var(--muted);cursor:pointer;border-bottom:2px solid transparent;white-space:nowrap;font-weight:600}
+nav button:hover{color:var(--text)}
+nav button.on{color:var(--text);border-color:var(--accent)}
+main{max-width:1200px;margin:0 auto;padding:20px 16px 80px}
+section[hidden]{display:none!important}
+.grid{display:grid;gap:16px;grid-template-columns:repeat(12,minmax(0,1fr))}
+.card{background:var(--panel);border:1px solid var(--line);border-radius:var(--r);padding:18px;min-width:0}
+.span4{grid-column:span 4}.span5{grid-column:span 5}.span6{grid-column:span 6}.span7{grid-column:span 7}.span8{grid-column:span 8}.span12{grid-column:span 12}
+@media(max-width:900px){.span4,.span5,.span6,.span7,.span8{grid-column:span 12}}
+h2{margin:0 0 12px;font-size:.78rem;text-transform:uppercase;letter-spacing:.1em;color:var(--muted);font-weight:700}
+h3{margin:0;font-size:1rem}
+.big{font-size:2rem;font-weight:750;line-height:1.1;letter-spacing:-.01em}
+.stats{display:grid;grid-template-columns:repeat(auto-fit,minmax(130px,1fr));gap:14px;margin-top:16px}
+.stat .k{color:var(--muted);font-size:.78rem}
+.stat .v{font-weight:650;font-size:1.05rem}
+.kv{display:grid;grid-template-columns:auto 1fr auto;gap:8px 14px;align-items:center}
+.kv .k{color:var(--muted);font-size:.88rem}
+.code{font-family:var(--mono);font-weight:600;word-break:break-all}
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:6px;padding:8px 14px;border-radius:10px;border:1px solid var(--line);background:var(--panel2);cursor:pointer;font-weight:600;text-decoration:none;color:var(--text);white-space:nowrap}
+.btn:hover{border-color:#4a423a}
+.btn.primary{background:var(--accent);border-color:var(--accent);color:var(--accent-ink)}
+.btn.danger{color:var(--bad)}
+.btn.small{padding:4px 9px;font-size:.82rem;border-radius:8px}
+.btn:disabled{opacity:.5;cursor:default}
+.row{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+.input,select.input,textarea.input{background:var(--bg);border:1px solid var(--line);border-radius:10px;padding:8px 11px;min-width:0}
+.input:focus{outline:2px solid rgba(224,169,109,.4);border-color:var(--accent)}
+.muted{color:var(--muted)}.faint{color:var(--faint)}
+.empty{color:var(--muted);padding:18px 0;text-align:center}
+.players{display:flex;flex-direction:column;gap:10px}
+.player{display:grid;grid-template-columns:auto 1fr auto;gap:12px;align-items:center;padding:10px 12px;border-radius:12px;background:var(--panel2);border:1px solid var(--line)}
+.avatar{width:34px;height:34px;border-radius:10px;display:grid;place-items:center;font-weight:800;color:var(--accent-ink)}
+.player .sub{color:var(--muted);font-size:.82rem}
+.hp{height:5px;border-radius:9px;background:var(--line);overflow:hidden;margin-top:5px;max-width:160px}
+.hp i{display:block;height:100%;border-radius:9px}
+.badge{font-size:.7rem;font-weight:700;padding:1px 7px;border-radius:99px;border:1px solid var(--line);color:var(--muted);text-transform:uppercase;letter-spacing:.05em}
+.badge.java{color:var(--blue);border-color:rgba(121,184,232,.35)}
+.badge.ok{color:var(--ok);border-color:rgba(123,216,143,.35)}
+.badge.warn{color:var(--warn);border-color:rgba(232,194,106,.35)}
+.badge.admin{color:var(--accent);border-color:rgba(224,169,109,.4)}
+.progress{height:8px;background:var(--line);border-radius:9px;overflow:hidden}
+.progress i{display:block;height:100%;background:var(--accent);transition:width .6s}
+.log{font-family:var(--mono);font-size:.78rem;color:var(--muted);word-break:break-all}
+.banner{display:flex;gap:12px;align-items:center;flex-wrap:wrap;padding:12px 16px;border-radius:12px;border:1px solid rgba(232,194,106,.35);background:rgba(232,194,106,.08);margin-bottom:16px}
+.banner.info{border-color:rgba(121,184,232,.35);background:rgba(121,184,232,.08)}
+/* map */
+#mapWrap{position:relative;height:calc(100vh - 170px);min-height:420px;border-radius:var(--r);overflow:hidden;border:1px solid var(--line);background:#0b0a09}
+#map{position:absolute;inset:0;width:100%;height:100%}
+.mapside{position:absolute;top:12px;left:12px;z-index:5;width:260px;max-height:calc(100% - 24px);overflow:auto;background:rgba(26,23,20,.92);border:1px solid var(--line);border-radius:12px;padding:12px}
+@media(max-width:700px){.mapside{width:auto;right:62px;max-height:40%}}
+.mapside .p{display:flex;align-items:center;gap:8px;padding:6px 8px;border-radius:8px;cursor:pointer}
+.mapside .p:hover{background:var(--panel2)}
+.mapctl{position:absolute;right:12px;top:12px;z-index:5;display:flex;flex-direction:column;gap:6px}
+.mapctl .btn{width:38px;height:38px;padding:0;font-size:1.1rem;background:rgba(26,23,20,.92)}
+.coords{position:absolute;right:12px;bottom:12px;z-index:5;font-family:var(--mono);font-size:.78rem;background:rgba(26,23,20,.9);border:1px solid var(--line);border-radius:8px;padding:4px 9px;color:var(--muted)}
+.marker{position:relative;width:0;height:0;pointer-events:none}
+.marker .pin{position:absolute;left:-9px;top:-9px;width:18px;height:18px;border-radius:50%;border:3px solid #fff;box-shadow:0 0 0 3px rgba(0,0,0,.35),0 2px 10px rgba(0,0,0,.6)}
+.marker .label{position:absolute;left:14px;top:-12px;background:rgba(17,15,13,.9);border:1px solid var(--line);border-radius:7px;padding:1px 7px;font-size:.78rem;font-weight:700;white-space:nowrap}
+.marker.dead .pin{background:#555!important}
+.attribution{position:absolute;left:12px;bottom:12px;z-index:5;font-size:.72rem;color:var(--faint)}
+/* mods */
+.modgrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(250px,1fr));gap:12px}
+.mod{display:grid;grid-template-columns:64px 1fr;gap:12px;padding:10px;border-radius:12px;background:var(--panel);border:1px solid var(--line);min-width:0}
+.mod img,.mod .noimg{width:64px;height:64px;border-radius:9px;object-fit:cover;background:var(--panel2)}
+.mod .name{font-weight:650;line-height:1.25;overflow:hidden;text-overflow:ellipsis;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical}
+.mod .id{font-family:var(--mono);font-size:.74rem;color:var(--faint);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.mod .row{margin-top:4px;gap:5px}
+.mod.missing{opacity:.6}
+/* settings */
+.settings{display:flex;flex-direction:column;gap:2px}
+.setting{display:grid;grid-template-columns:minmax(0,1fr) minmax(170px,280px);gap:16px;align-items:center;padding:12px 4px;border-bottom:1px solid var(--line)}
+@media(max-width:700px){.setting{grid-template-columns:1fr}}
+.setting .label{font-weight:600}
+.setting .help{color:var(--muted);font-size:.84rem;margin-top:2px}
+.setting.changed .label::after{content:" • edited";color:var(--accent);font-size:.78rem;font-weight:700}
+.setting .input{width:100%}
+.group{margin-top:22px}
+.group>summary{cursor:pointer;font-weight:700;padding:10px 4px;list-style:none;display:flex;align-items:center;gap:8px}
+.group>summary::before{content:"▸";color:var(--muted);transition:transform .15s}
+.group[open]>summary::before{transform:rotate(90deg)}
+.switch{position:relative;width:46px;height:26px;display:inline-block}
+.switch input{opacity:0;width:0;height:0}
+.switch span{position:absolute;inset:0;background:var(--line);border-radius:99px;cursor:pointer;transition:.15s}
+.switch span::before{content:"";position:absolute;width:20px;height:20px;left:3px;top:3px;background:#cfc7be;border-radius:50%;transition:.15s}
+.switch input:checked+span{background:var(--accent)}
+.switch input:checked+span::before{transform:translateX(20px);background:#fff}
+.savebar{position:fixed;left:0;right:0;bottom:0;z-index:30;background:rgba(26,23,20,.97);border-top:1px solid var(--line);padding:12px 16px}
+.savebar .in{max-width:1200px;margin:0 auto;display:flex;gap:10px;align-items:center;flex-wrap:wrap}
+.subtabs{display:inline-flex;background:var(--panel2);border:1px solid var(--line);border-radius:11px;padding:3px;gap:3px}
+.subtabs button{border:0;background:none;padding:6px 14px;border-radius:8px;cursor:pointer;color:var(--muted);font-weight:600}
+.subtabs button.on{background:var(--panel);color:var(--text)}
+/* console */
+#logbox{height:calc(100vh - 330px);min-height:300px;overflow:auto;background:#0b0a09;border:1px solid var(--line);border-radius:12px;padding:12px;font-family:var(--mono);font-size:.78rem;line-height:1.55;white-space:pre-wrap;word-break:break-all}
+#logbox .err{color:var(--bad)}#logbox .warn{color:var(--warn)}#logbox .cmd{color:var(--accent)}#logbox .out{color:var(--text)}
+table.list{width:100%;border-collapse:collapse}
+table.list td,table.list th{padding:10px 6px;border-bottom:1px solid var(--line);text-align:left}
+table.list th{color:var(--muted);font-size:.78rem;text-transform:uppercase;letter-spacing:.08em;font-weight:700}
+.toast{position:fixed;left:50%;bottom:24px;transform:translateX(-50%);z-index:50;background:var(--panel2);border:1px solid var(--line);padding:10px 16px;border-radius:12px;box-shadow:0 8px 30px rgba(0,0,0,.5);font-weight:600}
+.toast.bad{border-color:rgba(226,112,98,.5);color:var(--bad)}
+</style>
+</head>
+<body>
+<header>
+  <div class="bar">
+    <div class="brand">Project Zomboid <small id="serverName"></small></div>
+    <span id="phase" class="pill starting"><span class="dot"></span><span id="phaseText">Loading</span></span>
+    <span class="spacer"></span>
+    <span class="meta" id="headerMeta"></span>
+  </div>
+  <nav id="tabs">
+    <button data-tab="overview" class="on">Overview</button>
+    <button data-tab="map">Live map</button>
+    <button data-tab="mods">Mods</button>
+    <button data-tab="settings">Settings</button>
+    <button data-tab="console">Console</button>
+    <button data-tab="backups">Backups</button>
+  </nav>
+</header>
+
+<main>
+<!-- ============ overview ============ -->
+<section id="tab-overview">
+  <div id="restartBanner" class="banner" hidden>
+    <span>Settings were changed since the server started. Restart it to apply them.</span>
+    <span class="spacer"></span>
+    <button class="btn small primary" data-restart="1">Restart in 1 minute</button>
+  </div>
+  <div id="countdownBanner" class="banner info" hidden>
+    <span id="countdownText"></span><span class="spacer"></span>
+    <button class="btn small" id="cancelRestart">Cancel restart</button>
+  </div>
+  <div class="grid">
+    <div class="card span7">
+      <h2>Server</h2>
+      <div class="big" id="ovState">Loading…</div>
+      <div class="muted" id="ovSub"></div>
+      <div id="ovProgress" hidden style="margin-top:14px">
+        <div class="row" style="justify-content:space-between"><span class="muted">Workshop downloads</span><span id="ovProgressText" class="muted"></span></div>
+        <div class="progress" style="margin-top:6px"><i id="ovProgressBar" style="width:0"></i></div>
+        <div class="log" id="ovLog" style="margin-top:10px"></div>
+      </div>
+      <div class="stats" id="ovStats"></div>
+    </div>
+    <div class="card span5">
+      <h2>Join</h2>
+      <div class="kv">
+        <span class="k">IP address</span><span class="code" id="joinIp"></span><button class="btn small" data-copy="joinIp">Copy</button>
+        <span class="k">Port</span><span class="code" id="joinPort"></span><button class="btn small" data-copy="joinPort">Copy</button>
+        <span class="k">Password</span><span class="code" id="joinPass" data-secret>••••••••</span><span class="row"><button class="btn small" data-reveal="joinPass">Show</button><button class="btn small" data-copy="joinPass">Copy</button></span>
+      </div>
+      <p class="muted" style="font-size:.86rem;margin:14px 0 0">In Project Zomboid choose <b>Join</b>, add a server with these details, then pick any username and password: your character is saved to them. Players need ZombieBuddy set up. The game downloads the server's mods when you join; restart once after the first join so the Java mods load.</p>
+      <details style="margin-top:12px"><summary class="muted" style="cursor:pointer">Admin account</summary>
+        <div class="kv" style="margin-top:10px">
+          <span class="k">Username</span><span class="code">admin</span><span></span>
+          <span class="k">Password</span><span class="code" id="adminPass" data-secret>••••••••</span><span class="row"><button class="btn small" data-reveal="adminPass">Show</button><button class="btn small" data-copy="adminPass">Copy</button></span>
+        </div>
+      </details>
+    </div>
+    <div class="card span7">
+      <div class="row" style="justify-content:space-between;margin-bottom:12px"><h2 style="margin:0">Players online</h2><span class="muted" id="playerCount"></span></div>
+      <div class="players" id="ovPlayers"></div>
+    </div>
+    <div class="card span5">
+      <h2>Quick actions</h2>
+      <form id="broadcastForm" class="row" style="margin-bottom:14px">
+        <input class="input" id="broadcastText" placeholder="Message everyone in game" maxlength="240" style="flex:1">
+        <button class="btn primary">Send</button>
+      </form>
+      <div class="row">
+        <button class="btn" id="saveWorld">Save world</button>
+        <select class="input" id="restartDelay">
+          <option value="0">Restart now</option>
+          <option value="1">Restart in 1 min</option>
+          <option value="5" selected>Restart in 5 min</option>
+          <option value="10">Restart in 10 min</option>
+        </select>
+        <button class="btn danger" id="restartBtn">Restart</button>
+      </div>
+      <p class="muted" style="font-size:.84rem;margin:12px 0 0">Restarting warns players in game, saves the world and brings the server back in a couple of minutes. To stop it completely, stop the app in Umbrel.</p>
+    </div>
+  </div>
+</section>
+
+<!-- ============ map ============ -->
+<section id="tab-map" hidden>
+  <div id="mapWrap">
+    <div id="map"></div>
+    <div class="mapside">
+      <h2 style="margin-bottom:6px">On the map</h2>
+      <div id="mapPlayers"></div>
+      <label class="row muted" style="margin-top:10px;font-size:.84rem"><input type="checkbox" id="follow"> Follow selected player</label>
+    </div>
+    <div class="mapctl">
+      <button class="btn" id="zin" title="Zoom in">+</button>
+      <button class="btn" id="zout" title="Zoom out">−</button>
+      <button class="btn" id="zhome" title="Show everyone">⌂</button>
+    </div>
+    <div class="coords" id="coords">x —, y —</div>
+    <div class="attribution">Map: pzmap.org</div>
+  </div>
+</section>
+
+<!-- ============ mods ============ -->
+<section id="tab-mods" hidden>
+  <div class="row" style="margin-bottom:16px">
+    <input class="input" id="modSearch" placeholder="Search mods" style="flex:1;min-width:200px">
+    <select class="input" id="modFilter">
+      <option value="all">All mods</option>
+      <option value="java">Java mods (need ZombieBuddy)</option>
+      <option value="missing">Not downloaded yet</option>
+    </select>
+  </div>
+  <div class="muted" id="modSummary" style="margin-bottom:14px"></div>
+  <div class="modgrid" id="modGrid"></div>
+  <p class="muted" style="font-size:.86rem;margin-top:20px">The mod list and load order come from <span class="code">mods.txt</span> and <span class="code">workshop.txt</span> in the app, so they're changed with an app update rather than here.</p>
+</section>
+
+<!-- ============ settings ============ -->
+<section id="tab-settings" hidden>
+  <div class="row" style="margin-bottom:16px">
+    <div class="subtabs" id="setTabs"><button data-set="server" class="on">Server</button><button data-set="sandbox">Sandbox (world rules)</button></div>
+    <input class="input" id="setSearch" placeholder="Search settings" style="flex:1;min-width:200px">
+  </div>
+  <div id="setNotReady" class="banner info" hidden>The server writes its settings files on its first start. They'll show up here once it's running.</div>
+  <div id="setBody"></div>
+</section>
+
+<!-- ============ console ============ -->
+<section id="tab-console" hidden>
+  <div class="row" style="margin-bottom:12px">
+    <input class="input" id="logFilter" placeholder="Filter the log" style="flex:1;min-width:180px">
+    <label class="row muted"><input type="checkbox" id="logErrors"> Errors and warnings only</label>
+    <label class="row muted"><input type="checkbox" id="logFollow" checked> Follow</label>
+  </div>
+  <div id="logbox"></div>
+  <form id="cmdForm" class="row" style="margin-top:12px">
+    <input class="input" id="cmdText" placeholder="Server command, e.g. players, save, servermsg &quot;hi&quot;, additem &quot;name&quot; Base.Axe" style="flex:1;font-family:var(--mono)">
+    <button class="btn primary">Run</button>
+  </form>
+  <p class="muted" style="font-size:.84rem">Commands run as the server admin. Type <span class="code">help</span> for the full list.</p>
+</section>
+
+<!-- ============ backups ============ -->
+<section id="tab-backups" hidden>
+  <div class="grid">
+    <div class="card span5">
+      <h2>Download the world</h2>
+      <p class="muted" style="margin-top:0">Saves the world, then downloads it with the server settings and player accounts as one zip.</p>
+      <p>World size: <b id="worldSize">…</b></p>
+      <a class="btn primary" href="api/world.zip" id="worldZip">Download world</a>
+    </div>
+    <div class="card span7">
+      <h2>Automatic backups</h2>
+      <p class="muted" style="margin-top:0;font-size:.88rem">The server makes these itself (see <b>BackupsOnStart</b> and <b>BackupsPeriod</b> in Settings).</p>
+      <table class="list"><thead><tr><th>Backup</th><th>Size</th><th>Made</th><th></th></tr></thead><tbody id="backupList"></tbody></table>
+    </div>
+  </div>
+</section>
+</main>
+
+<div id="savebar" class="savebar" hidden><div class="in">
+  <span id="saveCount"></span><span class="spacer"></span>
+  <button class="btn" id="discard">Discard</button>
+  <button class="btn primary" id="saveSettings">Save settings</button>
+</div></div>
+
+<script src="openseadragon.min.js"></script>
+<script>
+"use strict";
+const $ = (id) => document.getElementById(id);
+const esc = (s) => String(s ?? "").replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
+let S = null; // latest /api/state
+let tab = "overview";
+
+async function api(path, body) {
+  const opts = body === undefined ? {} : { method: "POST", headers: { "Content-Type": "application/json", "X-Dashboard": "1" }, body: JSON.stringify(body) };
+  const r = await fetch(path, opts);
+  const data = await r.json().catch(() => ({}));
+  if (!r.ok) throw Object.assign(new Error(data.error || `Request failed (${r.status})`), { data });
+  return data;
+}
+function toast(msg, bad) {
+  const t = document.createElement("div");
+  t.className = "toast" + (bad ? " bad" : "");
+  t.textContent = msg;
+  document.body.appendChild(t);
+  setTimeout(() => t.remove(), 3500);
+}
+function dur(ms) {
+  const m = Math.floor(ms / 60000), d = Math.floor(m / 1440), h = Math.floor((m % 1440) / 60);
+  if (d) return `${d}d ${h}h`;
+  if (h) return `${h}h ${m % 60}m`;
+  return `${m}m`;
+}
+function size(b) {
+  const u = ["B", "KB", "MB", "GB"]; let i = 0;
+  while (b >= 1024 && i < u.length - 1) { b /= 1024; i++; }
+  return `${b.toFixed(i ? 1 : 0)} ${u[i]}`;
+}
+const pad = (n) => String(Math.round(n)).padStart(2, "0");
+const MONTHS = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
+const COLORS = ["#e0a96d", "#7bd88f", "#79b8e8", "#e88fb5", "#c3a6f0", "#e8c26a", "#6fd6c9", "#f09a73"];
+function colorFor(name) { let h = 0; for (const c of name) h = (h * 31 + c.charCodeAt(0)) >>> 0; return COLORS[h % COLORS.length]; }
+
+/* ---------- tabs ---------- */
+$("tabs").addEventListener("click", (e) => {
+  const b = e.target.closest("button[data-tab]");
+  if (b) show(b.dataset.tab);
+});
+function show(name) {
+  tab = name;
+  document.querySelectorAll("#tabs button").forEach((b) => b.classList.toggle("on", b.dataset.tab === name));
+  document.querySelectorAll("main>section").forEach((s) => (s.hidden = s.id !== "tab-" + name));
+  try { localStorage.setItem("pz-tab", name); } catch (e) {}
+  if (name === "map") initMap();
+  if (name === "mods") loadMods();
+  if (name === "settings") loadSettings();
+  if (name === "console") loadLog(true);
+  if (name === "backups") loadBackups();
+  $("savebar").hidden = !(name === "settings" && Object.keys(changes.server).length + Object.keys(changes.sandbox).length);
+}
+
+/* ---------- copy / reveal ---------- */
+const secretValues = {};
+document.addEventListener("click", (e) => {
+  const r = e.target.closest("[data-reveal]");
+  if (r) {
+    const el = $(r.dataset.reveal), shown = el.dataset.shown === "1";
+    el.dataset.shown = shown ? "0" : "1";
+    el.textContent = shown ? "••••••••" : secretValues[el.id] || "";
+    r.textContent = shown ? "Show" : "Hide";
+  }
+  const c = e.target.closest("[data-copy]");
+  if (c) {
+    const el = $(c.dataset.copy);
+    copy(el.hasAttribute("data-secret") ? secretValues[el.id] || "" : el.textContent);
+  }
+  const rs = e.target.closest("[data-restart]");
+  if (rs) restart(+rs.dataset.restart);
+  const lc = e.target.closest("[data-locate]");
+  if (lc) locate(lc.dataset.locate);
+});
+function copy(text) {
+  const done = () => toast("Copied");
+  if (navigator.clipboard && window.isSecureContext) return navigator.clipboard.writeText(text).then(done);
+  const t = document.createElement("textarea");
+  t.value = text; document.body.appendChild(t); t.select();
+  try { document.execCommand("copy"); done(); } catch (e) { toast("Couldn't copy", true); }
+  t.remove();
+}
+
+/* ---------- state / overview ---------- */
+async function refresh() {
+  try { S = await api("api/state"); } catch (e) { return; }
+  const phase = S.phase;
+  $("phase").className = "pill " + phase;
+  $("phaseText").textContent = { online: "Online", starting: "Starting", offline: "Offline" }[phase];
+  $("serverName").textContent = S.version ? `· ${S.name} · ${S.version}` : `· ${S.name}`;
+  const up = S.startedAt && phase === "online" ? dur(S.now - S.startedAt) : null;
+  $("headerMeta").textContent = phase === "online" ? `${S.players.length} online${up ? " · up " + up : ""}` : "";
+
+  $("joinIp").textContent = location.hostname;
+  $("joinPort").textContent = S.port;
+  secretValues.joinPass = S.joinPassword; secretValues.adminPass = S.adminPassword;
+  for (const id of ["joinPass", "adminPass"]) if ($(id).dataset.shown === "1") $(id).textContent = secretValues[id];
+
+  const gt = S.gameTime, w = S.weather;
+  if (phase === "online") {
+    $("ovState").textContent = "Online";
+    $("ovSub").textContent = up ? `Up for ${up}` : "Running";
+  } else if (phase === "starting") {
+    $("ovState").textContent = "Starting up";
+    $("ovSub").textContent = "The first start downloads about 3 GB of mods and can take 20 minutes or more.";
+  } else {
+    $("ovState").textContent = "Offline";
+    $("ovSub").textContent = "The server isn't running. It restarts by itself if it crashed; otherwise start the app in Umbrel.";
+  }
+  const m = S.mods;
+  $("ovProgress").hidden = phase === "online";
+  $("ovProgressText").textContent = `${m.downloaded} of ${m.items}`;
+  $("ovProgressBar").style.width = (m.items ? (100 * m.downloaded) / m.items : 0) + "%";
+  $("ovLog").textContent = S.lastLog;
+
+  const stats = [];
+  if (gt) {
+    stats.push(["In-game", `${MONTHS[(gt.month - 1) % 12]} ${Math.round(gt.day)}, ${Math.round(gt.year)} · ${pad(gt.hour)}:${pad(gt.minute)}`]);
+    stats.push(["Days survived", Math.floor(gt.daysSurvived)]);
+  }
+  if (w) {
+    const sky = w.snowing ? "Snowing" : w.raining ? "Raining" : w.fog > 0.4 ? "Foggy" : w.clouds > 0.6 ? "Cloudy" : "Clear";
+    stats.push(["Weather", `${sky} · ${Math.round(w.temperature)}°C`]);
+    stats.push(["Wind", `${Math.round(w.wind)} km/h`]);
+  }
+  stats.push(["Mods", `${m.count} mods`]);
+  $("ovStats").innerHTML = stats.map(([k, v]) => `<div class="stat"><div class="k">${esc(k)}</div><div class="v">${esc(v)}</div></div>`).join("");
+
+  $("playerCount").textContent = phase === "online" ? `${S.players.length}` : "";
+  $("ovPlayers").innerHTML = S.players.length
+    ? S.players.map(playerCard).join("")
+    : `<div class="empty">${phase === "online" ? "Nobody's on right now." : "No one can join until the server is online."}</div>`;
+
+  $("restartBanner").hidden = !S.needsRestart || !!S.restartAt;
+  $("countdownBanner").hidden = !S.restartAt;
+  if (S.restartAt) $("countdownText").textContent = `Restarting in ${Math.max(0, Math.round((S.restartAt - S.now) / 1000))} seconds. Players are being warned in game.`;
+
+  if (tab === "map") updateMap();
+}
+function playerCard(p) {
+  const color = colorFor(p.name);
+  const hp = p.health == null ? null : Math.max(0, Math.min(100, p.health));
+  const hpColor = hp == null ? "var(--faint)" : hp > 60 ? "var(--ok)" : hp > 25 ? "var(--warn)" : "var(--bad)";
+  const bits = [];
+  if (p.alive === false) bits.push("Dead");
+  if (p.near) bits.push("near " + p.near);
+  if (p.x != null) bits.push(`${Math.round(p.x)}, ${Math.round(p.y)}${p.z >= 1 ? ` · floor ${Math.round(p.z)}` : ""}`);
+  if (p.kills != null) bits.push(`${Math.round(p.kills)} kills`);
+  if (p.hoursSurvived != null) bits.push(`${dur(p.hoursSurvived * 3600000).replace(/m$/, "m")} alive`);
+  return `<div class="player">
+    <div class="avatar" style="background:${color}">${esc(p.name.slice(0, 1).toUpperCase())}</div>
+    <div style="min-width:0"><div class="row" style="gap:6px"><b>${esc(p.name)}</b>${p.admin ? '<span class="badge admin">admin</span>' : ""}</div>
+      <div class="sub">${esc(bits.join(" · "))}</div>
+      ${hp == null ? "" : `<div class="hp"><i style="width:${hp}%;background:${hpColor}"></i></div>`}</div>
+    ${p.x != null ? `<button class="btn small" data-locate="${esc(p.name)}">Map</button>` : "<span></span>"}
+  </div>`;
+}
+
+$("broadcastForm").addEventListener("submit", async (e) => {
+  e.preventDefault();
+  const text = $("broadcastText").value.trim();
+  if (!text) return;
+  try { await api("api/broadcast", { text }); $("broadcastText").value = ""; toast("Sent to everyone in game"); }
+  catch (err) { toast(err.message, true); }
+});
+$("saveWorld").addEventListener("click", async (e) => {
+  e.target.disabled = true;
+  try { await api("api/save", {}); toast("World saved"); } catch (err) { toast(err.message, true); }
+  e.target.disabled = false;
+});
+$("restartBtn").addEventListener("click", () => restart(+$("restartDelay").value));
+$("cancelRestart").addEventListener("click", async () => { await api("api/restart", { cancel: true }).catch(() => {}); refresh(); });
+async function restart(minutes) {
+  const msg = minutes ? `Restart the server in ${minutes} minute${minutes > 1 ? "s" : ""}? Players get warnings in game.` : "Restart the server now? Players are kicked while it restarts.";
+  if (!confirm(msg)) return;
+  try { await api("api/restart", { minutes }); toast(minutes ? "Restart scheduled" : "Restarting"); refresh(); }
+  catch (err) { toast(err.message, true); }
+}
+
+/* ---------- map ---------- */
+const G = { w: 2318656, h: 1019040, x0: 1040384, y0: -139296, half: 64, quarter: 32 };
+let viewer = null, selected = null;
+const markers = {};
+function worldToImage(x, y) { return new OpenSeadragon.Point(G.x0 + (x - y) * G.half, G.y0 + (x + y) * G.quarter); }
+function imageToWorld(px, py) { const a = (px - G.x0) / G.half, b = (py - G.y0) / G.quarter; return { x: (a + b) / 2, y: (b - a) / 2 }; }
+function vp(x, y) { return viewer.viewport.imageToViewportCoordinates(worldToImage(x, y)); }
+function initMap() {
+  if (viewer) { updateMap(); return; }
+  viewer = OpenSeadragon({
+    element: $("map"), showNavigationControl: false, prefixUrl: "", animationTime: 0.6, visibilityRatio: 0.3,
+    minZoomImageRatio: 0.5, maxZoomPixelRatio: 2, gestureSettingsMouse: { clickToZoom: false }, immediateRender: false,
+    tileSources: { width: G.w, height: G.h, tileSize: 2048, tileOverlap: 0, minLevel: 10, maxLevel: 22,
+      getTileUrl: (level, x, y) => `tiles/${level}/${x}_${y}.jpg` },
+  });
+  viewer.addOnceHandler("open", () => { home(true); updateMap(); });
+  $("zin").onclick = () => viewer.viewport.zoomBy(1.6);
+  $("zout").onclick = () => viewer.viewport.zoomBy(1 / 1.6);
+  $("zhome").onclick = () => { selected = null; $("follow").checked = false; home(); };
+  new OpenSeadragon.MouseTracker({ element: viewer.container, moveHandler: (e) => {
+    const img = viewer.viewport.viewportToImageCoordinates(viewer.viewport.pointFromPixel(e.position));
+    const w = imageToWorld(img.x, img.y);
+    $("coords").textContent = `x ${Math.round(w.x)}, y ${Math.round(w.y)}`;
+  } });
+}
+function fitWorld(x1, y1, x2, y2, immediate) {
+  const pts = [vp(x1, y1), vp(x2, y1), vp(x1, y2), vp(x2, y2)];
+  const xs = pts.map((p) => p.x), ys = pts.map((p) => p.y);
+  viewer.viewport.fitBounds(new OpenSeadragon.Rect(Math.min(...xs), Math.min(...ys), Math.max(...xs) - Math.min(...xs), Math.max(...ys) - Math.min(...ys)), immediate);
+}
+function home(immediate) {
+  const ps = (S?.players || []).filter((p) => p.x != null);
+  if (ps.length) {
+    const xs = ps.map((p) => p.x), ys = ps.map((p) => p.y), m = 350;
+    fitWorld(Math.min(...xs) - m, Math.min(...ys) - m, Math.max(...xs) + m, Math.max(...ys) + m, immediate);
+  } else {
+    fitWorld(9000, 8500, 12500, 11000, immediate); // Muldraugh and around
+  }
+}
+function updateMap() {
+  if (!viewer || !viewer.world.getItemCount()) return;
+  const ps = (S?.players || []).filter((p) => p.x != null);
+  const seen = new Set();
+  for (const p of ps) {
+    seen.add(p.name);
+    let m = markers[p.name];
+    if (!m) {
+      const el = document.createElement("div");
+      el.className = "marker";
+      el.innerHTML = `<div class="pin" style="background:${colorFor(p.name)}"></div><div class="label">${esc(p.name)}</div>`;
+      viewer.addOverlay({ element: el, location: vp(p.x, p.y), placement: OpenSeadragon.Placement.CENTER, checkResize: false });
+      m = markers[p.name] = el;
+    } else {
+      viewer.updateOverlay(m, vp(p.x, p.y), OpenSeadragon.Placement.CENTER);
+    }
+    m.classList.toggle("dead", p.alive === false);
+  }
+  for (const name of Object.keys(markers)) if (!seen.has(name)) { viewer.removeOverlay(markers[name]); delete markers[name]; }
+  $("mapPlayers").innerHTML = ps.length
+    ? ps.map((p) => `<div class="p" data-name="${esc(p.name)}"><span class="dot" style="background:${colorFor(p.name)}"></span><b>${esc(p.name)}</b><span class="faint" style="font-size:.8rem;margin-left:auto">${esc(p.near || "")}</span></div>`).join("")
+    : `<div class="muted" style="font-size:.88rem">${S?.phase === "online" ? (S.liveMap ? "Nobody's on right now." : "Waiting for the server's map script…") : "The server isn't online."}</div>`;
+  if (selected && $("follow").checked) { const p = ps.find((q) => q.name === selected); if (p) viewer.viewport.panTo(vp(p.x, p.y)); }
+}
+$("mapPlayers").addEventListener("click", (e) => { const r = e.target.closest("[data-name]"); if (r) locate(r.dataset.name); });
+function locate(name) {
+  selected = name;
+  if (tab !== "map") show("map");
+  const go = () => { const p = (S?.players || []).find((q) => q.name === name); if (p) fitWorld(p.x - 120, p.y - 120, p.x + 120, p.y + 120); };
+  viewer.world.getItemCount() ? go() : viewer.addOnceHandler("open", go);
+}
+
+/* ---------- mods ---------- */
+let MODS = null;
+async function loadMods() {
+  if (!MODS) { try { MODS = await api("api/mods"); } catch (e) { $("modGrid").innerHTML = `<div class="empty">${esc(e.message)}</div>`; return; } }
+  const q = $("modSearch").value.trim().toLowerCase(), f = $("modFilter").value;
+  const rows = MODS.mods.filter((m) => (!q || (m.name + " " + m.id).toLowerCase().includes(q)) && (f === "all" || (f === "java" && m.java) || (f === "missing" && !m.found)));
+  const java = MODS.mods.filter((m) => m.java).length, missing = MODS.mods.filter((m) => !m.found).length;
+  $("modSummary").innerHTML = `${MODS.mods.length} mods from ${MODS.items} Workshop items · ${java} Java mods${missing ? ` · <span style="color:var(--warn)">${missing} not downloaded yet</span>` : ""}`
+    + (MODS.collection ? ` · <a href="https://steamcommunity.com/sharedfiles/filedetails/?id=${esc(MODS.collection)}" target="_blank" rel="noopener">Collection on Steam</a>` : "");
+  $("modGrid").innerHTML = rows.map((m) => `<div class="mod${m.found ? "" : " missing"}">
+      ${m.poster ? `<img loading="lazy" src="api/poster?path=${encodeURIComponent(m.poster)}" alt="">` : `<div class="noimg"></div>`}
+      <div style="min-width:0">
+        <div class="name" title="${esc(m.description || "")}">${esc(m.name)}</div>
+        <div class="id">#${m.order} · ${esc(m.id)}</div>
+        <div class="row">${m.java ? '<span class="badge java">Java</span>' : ""}${m.found ? "" : '<span class="badge warn">Waiting</span>'}${m.item ? `<a class="badge" href="https://steamcommunity.com/sharedfiles/filedetails/?id=${esc(m.item)}" target="_blank" rel="noopener">Workshop ↗</a>` : ""}</div>
+      </div></div>`).join("") || `<div class="empty">No mods match.</div>`;
+}
+$("modSearch").addEventListener("input", loadMods);
+$("modFilter").addEventListener("change", loadMods);
+
+/* ---------- settings ---------- */
+let SETTINGS = null, setView = "server";
+const changes = { server: {}, sandbox: {} };
+const label = (k) => k.replace(/([a-z0-9])([A-Z])/g, "$1 $2").replace(/([A-Z]+)([A-Z][a-z])/g, "$1 $2").replace(/_/g, " ");
+async function loadSettings(force) {
+  if (!SETTINGS || force) { try { SETTINGS = await api("api/settings"); } catch (e) { $("setBody").innerHTML = `<div class="empty">${esc(e.message)}</div>`; return; } }
+  $("setNotReady").hidden = SETTINGS.ready;
+  renderSettings();
+}
+$("setTabs").addEventListener("click", (e) => { const b = e.target.closest("button"); if (!b) return; setView = b.dataset.set; document.querySelectorAll("#setTabs button").forEach((x) => x.classList.toggle("on", x === b)); renderSettings(); });
+$("setSearch").addEventListener("input", renderSettings);
+function control(kind, id, s, value) {
+  const attrs = `data-kind="${kind}" data-id="${esc(id)}" data-type="${s.type}"`;
+  if (s.locked) return `<div class="muted" style="font-size:.86rem">${esc(s.value)}<div class="faint">${esc(s.locked)}</div></div>`;
+  if (s.type === "bool") return `<label class="switch"><input type="checkbox" ${attrs} ${value === "true" ? "checked" : ""}><span></span></label>`;
+  if (s.options && s.options.length) {
+    const opts = s.options.map((o) => `<option value="${esc(o.value)}" ${o.value === value ? "selected" : ""}>${esc(o.label)}</option>`).join("");
+    const known = s.options.some((o) => o.value === value);
+    return `<select class="input" ${attrs}>${known ? "" : `<option value="${esc(value)}" selected>${esc(value)}</option>`}${opts}</select>`;
+  }
+  if (s.type === "int" || s.type === "float") return `<input class="input" type="number" step="${s.type === "int" ? 1 : "any"}" value="${esc(value)}" ${attrs}>`;
+  return `<input class="input" type="text" value="${esc(value)}" ${attrs}>`;
+}
+function settingRow(kind, id, s, title) {
+  const value = changes[kind][id] ?? s.value;
+  return `<div class="setting${id in changes[kind] ? " changed" : ""}"><div><div class="label">${esc(title)}</div>${s.help ? `<div class="help">${esc(s.help)}</div>` : ""}</div><div>${control(kind, id, s, value)}</div></div>`;
+}
+function renderSettings() {
+  if (!SETTINGS) return;
+  const q = $("setSearch").value.trim().toLowerCase();
+  const match = (s, title) => !q || (title + " " + (s.key || "") + " " + (s.help || "")).toLowerCase().includes(q);
+  let html = "";
+  if (setView === "server") {
+    const rows = SETTINGS.server.filter((s) => match(s, label(s.key)));
+    const pop = rows.filter((s) => s.popular), rest = rows.filter((s) => !s.popular);
+    if (pop.length) html += `<h2>Most used</h2><div class="settings">${pop.map((s) => settingRow("server", s.key, s, label(s.key))).join("")}</div>`;
+    if (rest.length) html += `<details class="group" ${q ? "open" : ""}><summary>Everything else <span class="faint">(${rest.length})</span></summary><div class="settings">${rest.map((s) => settingRow("server", s.key, s, label(s.key))).join("")}</div></details>`;
+  } else {
+    const groups = {};
+    for (const s of SETTINGS.sandbox) if (match(s, label(s.key) + " " + s.group)) (groups[s.group] ||= []).push(s);
+    const names = Object.keys(groups).sort((a, b) => (a === "General" ? -1 : b === "General" ? 1 : a.localeCompare(b)));
+    html = names.map((g, i) => `<details class="group" ${q || i === 0 ? "open" : ""}><summary>${esc(label(g))} <span class="faint">(${groups[g].length})</span></summary><div class="settings">${groups[g].map((s) => settingRow("sandbox", s.path, s, label(s.key))).join("")}</div></details>`).join("");
+    if (html) html = `<p class="muted" style="margin-top:0;font-size:.88rem">World rules: loot, zombies, time and the options mods add (like WayMoreCars). Some only affect parts of the map nobody has visited yet.</p>` + html;
+  }
+  $("setBody").innerHTML = html || `<div class="empty">${SETTINGS.ready ? "No settings match." : ""}</div>`;
+}
+$("setBody").addEventListener("change", (e) => {
+  const el = e.target.closest("[data-kind]");
+  if (!el) return;
+  const kind = el.dataset.kind, id = el.dataset.id;
+  const list = kind === "server" ? SETTINGS.server : SETTINGS.sandbox;
+  const orig = list.find((s) => (kind === "server" ? s.key : s.path) === id);
+  const value = el.type === "checkbox" ? String(el.checked) : el.value;
+  if (orig && value === orig.value) delete changes[kind][id]; else changes[kind][id] = value;
+  el.closest(".setting").classList.toggle("changed", id in changes[kind]);
+  updateSavebar();
+});
+function updateSavebar() {
+  const n = Object.keys(changes.server).length + Object.keys(changes.sandbox).length;
+  $("savebar").hidden = !n || tab !== "settings";
+  $("saveCount").textContent = `${n} unsaved change${n === 1 ? "" : "s"} · they apply after a restart`;
+}
+$("discard").addEventListener("click", () => { changes.server = {}; changes.sandbox = {}; updateSavebar(); renderSettings(); });
+$("saveSettings").addEventListener("click", async () => {
+  try {
+    await api("api/settings", changes);
+    changes.server = {}; changes.sandbox = {};
+    updateSavebar(); await loadSettings(true); refresh();
+    toast("Saved. Restart the server to apply.");
+  } catch (err) {
+    const errs = err.data && err.data.errors;
+    toast(errs ? Object.entries(errs).map(([k, v]) => `${label(k)}: ${v}`).join("; ") : err.message, true);
+  }
+});
+
+/* ---------- console ---------- */
+const typed = [];
+async function loadLog(jump) {
+  let lines;
+  try { lines = (await api("api/log?lines=800")).lines; } catch (e) { return; }
+  const q = $("logFilter").value.trim().toLowerCase(), only = $("logErrors").checked;
+  const box = $("logbox"), atEnd = box.scrollTop + box.clientHeight >= box.scrollHeight - 30;
+  box.innerHTML = lines.filter((l) => (!q || l.toLowerCase().includes(q)) && (!only || /error|exception|warn/i.test(l)))
+    .map((l) => `<div class="${/error|exception|severe/i.test(l) ? "err" : /warn/i.test(l) ? "warn" : ""}">${esc(l)}</div>`).join("")
+    + typed.map((t) => `<div class="${t.cls}">${esc(t.text)}</div>`).join("");
+  if ($("logFollow").checked && (jump || atEnd)) box.scrollTop = box.scrollHeight;
+}
+$("logFilter").addEventListener("input", () => loadLog(true));
+$("logErrors").addEventListener("change", () => loadLog(true));
+$("cmdForm").addEventListener("submit", async (e) => {
+  e.preventDefault();
+  const command = $("cmdText").value.trim();
+  if (!command) return;
+  typed.push({ cls: "cmd", text: "> " + command });
+  $("cmdText").value = "";
+  try { const r = await api("api/command", { command }); typed.push({ cls: "out", text: r.output || "(no output)" }); }
+  catch (err) { typed.push({ cls: "err", text: err.message }); }
+  loadLog(true);
+});
+
+/* ---------- backups ---------- */
+async function loadBackups() {
+  try {
+    const b = await api("api/backups");
+    $("worldSize").textContent = b.worldSize ? size(b.worldSize) : "no world yet";
+    $("backupList").innerHTML = b.backups.length
+      ? b.backups.map((x) => `<tr><td class="code" style="font-weight:500">${esc(x.path)}</td><td>${size(x.size)}</td><td>${new Date(x.time).toLocaleString()}</td><td><a class="btn small" href="api/backup?path=${encodeURIComponent(x.path)}">Download</a></td></tr>`).join("")
+      : `<tr><td colspan="4" class="empty">None yet.</td></tr>`;
+  } catch (e) { $("backupList").innerHTML = `<tr><td colspan="4" class="empty">${esc(e.message)}</td></tr>`; }
+}
+
+/* ---------- start ---------- */
+let first = "overview";
+try { first = location.hash.slice(1) || localStorage.getItem("pz-tab") || "overview"; } catch (e) {}
+refresh().then(() => show($("tab-" + first) ? first : "overview"));
+setInterval(refresh, 5000);
+setInterval(() => { if (tab === "console" && $("logFollow").checked) loadLog(); }, 4000);
+</script>
+</body>
+</html>

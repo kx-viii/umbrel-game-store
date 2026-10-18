@@ -29,21 +29,32 @@ services:
       - ${APP_DATA_DIR}/start.sh:/umbrel/start.sh:ro
       - ${APP_DATA_DIR}/mods.txt:/umbrel/mods.txt:ro
       - ${APP_DATA_DIR}/workshop.txt:/umbrel/workshop.txt:ro
+      - ${APP_DATA_DIR}/umbrel-live.lua:/umbrel/umbrel-live.lua:ro
     # Gives the server time to save the world on stop
     stop_grace_period: 3m
-    restart: on-failure
+    # The dashboard's Restart button saves and quits the server, and this brings it back.
+    # Stopping the app in Umbrel still stops it for good.
+    restart: unless-stopped
 
   web:
-    image: busybox:1.37.0
-    command:
-      - sh
-      - -c
-      - |
-        mkdir -p /www/cgi-bin
-        cp /umbrel/status.cgi /www/cgi-bin/index.cgi
-        chmod +x /www/cgi-bin/index.cgi
-        exec httpd -f -p 8080 -h /www
+    # The dashboard: status, live map, mods, settings, console and backups (dashboard/server.py)
+    image: python:3.12.12-alpine3.22@sha256:848ba4413eb897e225159b8fc1b02094576cbae4aa73fc13142608ae2c8c0e32
+    command: ["python", "-u", "/umbrel/dashboard/server.py"]
+    # The game server's user, so settings it edits keep the right owner
+    user: "1000:1000"
+    environment:
+      - SERVERNAME=home
+      - GAME_PORT=16261
+      - GAME_VERSION=42.21
+      - RCON_HOST=home-games-project-zomboid_server_1
+      - RCON_PORT=27015
+      - COLLECTION=3812346398
+      - PYTHONDONTWRITEBYTECODE=1
     volumes:
-      - ${APP_DATA_DIR}/status.cgi:/umbrel/status.cgi:ro
-      - ${APP_DATA_DIR}/data/zomboid:/zomboid:ro
+      - ${APP_DATA_DIR}/dashboard:/umbrel/dashboard:ro
+      - ${APP_DATA_DIR}/mods.txt:/umbrel/mods.txt:ro
+      - ${APP_DATA_DIR}/workshop.txt:/umbrel/workshop.txt:ro
+      # Read-write for the settings editor and the map tile cache
+      - ${APP_DATA_DIR}/data/zomboid:/zomboid
+      - ${APP_DATA_DIR}/data/workshop:/workshop:ro
     restart: on-failure
