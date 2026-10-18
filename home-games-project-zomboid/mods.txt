@@ -96,7 +96,6 @@ ImprovisedSilencers
 stanks_suicide
 ImmersiveBlackouts
 FH
-EQUIPMENT_UI_B42
 dustinguished_bolt_cutters
 BetterSortCC
 AutoMechanics
