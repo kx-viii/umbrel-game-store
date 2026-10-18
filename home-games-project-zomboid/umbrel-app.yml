@@ -2,7 +2,7 @@ manifestVersion: 1.1
 id: home-games-project-zomboid
 category: gaming
 name: Project Zomboid
-version: "42.21-2"
+version: "42.21-3"
 tagline: A modded Project Zomboid world that stays online
 icon: https://raw.githubusercontent.com/kx-viii/umbrel-game-store/main/home-games-project-zomboid/icon.png
 description: >-
@@ -20,7 +20,9 @@ description: >-
   The server's game version must match the players', so the app needs an update when Project Zomboid updates.
 
 
-  Players on your home network or Tailscale can join straight away. Players elsewhere need UDP ports 16261 and 16262 forwarded on the router.
+  Players on your home network or Tailscale can join straight away. For players elsewhere the app runs a playit.gg tunnel:
+  add its secret key as the custom environment variable SECRET_KEY on the playit service in the app's settings,
+  then put the tunnel's address in the dashboard's Join box.
 releaseNotes: ""
 developer: The Indie Stone / Danixu
 website: https://projectzomboid.com/

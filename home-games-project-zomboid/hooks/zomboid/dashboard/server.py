@@ -607,6 +607,7 @@ def state():
         "phase": phase,
         "name": SERVERNAME,
         "port": GAME_PORT,
+        "publicAddress": join_address(),
         "version": GAME_VERSION,
         "startedAt": started_ms,
         "now": int(time.time() * 1000),
@@ -622,6 +623,16 @@ def state():
         "needsRestart": phase == "online" and settings_changed_since_start(started_ms),
         "lastLog": last_line[:300],
     }
+
+
+def join_address():
+    """The address friends outside the home use, e.g. a playit.gg tunnel, set on the dashboard."""
+    try:
+        with open(f"{CACHE}/join.json", encoding="utf-8") as f:
+            data = json.load(f)
+        return {"host": str(data.get("host", "")), "port": str(data.get("port", ""))}
+    except (OSError, ValueError):
+        return {"host": "", "port": ""}
 
 
 def backups():
@@ -759,6 +770,15 @@ class Handler(BaseHTTPRequestHandler):
                     return self.send(400, {"errors": errors})
                 os.makedirs(CACHE, exist_ok=True)
                 write_atomic(f"{CACHE}/settings-saved", str(time.time()))
+                return self.send(200, {"ok": True})
+            if p == "/api/join":
+                text = str(body.get("address", "")).strip()
+                m = re.fullmatch(r"([A-Za-z0-9.-]{1,253})(?::(\d{1,5}))?", text)
+                if text and not m:
+                    return self.error(400, "Use host or host:port, like name.ply.gg:12345")
+                os.makedirs(CACHE, exist_ok=True)
+                host, port = (m.group(1), m.group(2) or GAME_PORT) if m else ("", "")
+                write_atomic(f"{CACHE}/join.json", json.dumps({"host": host, "port": port}))
                 return self.send(200, {"ok": True})
             if p == "/api/broadcast":
                 say(str(body.get("text", "")))

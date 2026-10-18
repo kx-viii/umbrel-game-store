@@ -174,8 +174,13 @@ table.list th{color:var(--muted);font-size:.78rem;text-transform:uppercase;lette
     <div class="card span5">
       <h2>Join</h2>
       <div class="kv">
+        <span class="k" style="grid-column:1/-1;color:var(--text);font-weight:600">From anywhere <button class="btn small" id="setPublic" style="margin-left:6px">Change</button></span>
+        <span class="k">IP address</span><span class="code" id="pubIp"></span><button class="btn small" data-copy="pubIp">Copy</button>
+        <span class="k">Port</span><span class="code" id="pubPort"></span><button class="btn small" data-copy="pubPort">Copy</button>
+        <span class="k" style="grid-column:1/-1;color:var(--text);font-weight:600;margin-top:6px">On your home network</span>
         <span class="k">IP address</span><span class="code" id="joinIp"></span><button class="btn small" data-copy="joinIp">Copy</button>
         <span class="k">Port</span><span class="code" id="joinPort"></span><button class="btn small" data-copy="joinPort">Copy</button>
+        <span class="k" style="grid-column:1/-1;color:var(--text);font-weight:600;margin-top:6px">Both</span>
         <span class="k">Password</span><span class="code" id="joinPass" data-secret>••••••••</span><span class="row"><button class="btn small" data-reveal="joinPass">Show</button><button class="btn small" data-copy="joinPass">Copy</button></span>
       </div>
       <p class="muted" style="font-size:.86rem;margin:14px 0 0">In Project Zomboid choose <b>Join</b>, add a server with these details, then pick any username and password: your character is saved to them. Players need ZombieBuddy set up. The game downloads the server's mods when you join; restart once after the first join so the Java mods load.</p>
@@ -391,6 +396,10 @@ async function refresh() {
 
   $("joinIp").textContent = location.hostname;
   $("joinPort").textContent = S.port;
+  const pub = S.publicAddress || {};
+  $("pubIp").textContent = pub.host || "Not set yet";
+  $("pubIp").classList.toggle("faint", !pub.host);
+  $("pubPort").textContent = pub.host ? pub.port : "—";
   secretValues.joinPass = S.joinPassword; secretValues.adminPass = S.adminPassword;
   for (const id of ["joinPass", "adminPass"]) if ($(id).dataset.shown === "1") $(id).textContent = secretValues[id];
 
@@ -467,6 +476,13 @@ $("saveWorld").addEventListener("click", async (e) => {
   e.target.disabled = false;
 });
 $("restartBtn").addEventListener("click", () => restart(+$("restartDelay").value));
+$("setPublic").addEventListener("click", async () => {
+  const cur = S?.publicAddress?.host ? `${S.publicAddress.host}:${S.publicAddress.port}` : "";
+  const address = prompt("The address friends use from outside your home, from your playit.gg tunnel (host:port). Leave empty to clear.", cur);
+  if (address === null) return;
+  try { await api("api/join", { address }); toast(address ? "Address saved" : "Address cleared"); refresh(); }
+  catch (err) { toast(err.message, true); }
+});
 $("cancelRestart").addEventListener("click", async () => { await api("api/restart", { cancel: true }).catch(() => {}); refresh(); });
 async function restart(minutes) {
   const msg = minutes ? `Restart the server in ${minutes} minute${minutes > 1 ? "s" : ""}? Players get warnings in game.` : "Restart the server now? Players are kicked while it restarts.";
